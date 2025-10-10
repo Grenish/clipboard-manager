@@ -83,7 +83,7 @@ graph TD
     cargo install --path .
     ```
 
-### Installation from AUR (Arch User Repository)
+### Installation from AUR (Arch User Repository) [WIP]
 
 You can install `clipboard-manager` from the Arch User Repository (AUR) using your favorite AUR helper (e.g., `yay`, `paru`).
 
@@ -112,10 +112,15 @@ The application creates a trigger script at `~/.local/share/clipboard-manager/tr
 Add the following lines to your `hyprland.conf`:
 
 ```
-bind = SUPER, V, exec, ~/.local/share/clipboard-manager/trigger.sh
+# Trigger with Super+Comma (You could configure your own)
+bind = SUPER, comma, exec, ~/.local/share/clipboard-manager/trigger.sh
+
+# Make clipboard window float and centered (like Windows!)
 windowrulev2 = float, class:(floating-clipboard)
 windowrulev2 = size 900 600, class:(floating-clipboard)
 windowrulev2 = center, class:(floating-clipboard)
+windowrulev2 = animation popin, class:(floating-clipboard)
+windowrulev2 = stayfocused, class:(floating-clipboard)
 ```
 
 ## 6\. Testing and CI
