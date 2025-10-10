@@ -27,7 +27,7 @@ This project is aimed at Linux power users, developers, and anyone who frequentl
 
 The application is architected into two main components: a background **daemon** that monitors the clipboard and a terminal-based **user interface (TUI)** for interacting with the clipboard history.
 
-### Architecture Diagram (Mermaid)
+### Architecture Diagram
 
 ```mermaid
 graph TD
