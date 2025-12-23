@@ -2,6 +2,9 @@
 
 A Windows-like clipboard manager for Linux, designed for efficiency and ease of use, particularly for users of tiling window managers like Hyprland.
 
+> [!NOTE]
+> This package is termed as to be completed. And decided not to push it to AUR. If you face some unexpected error in the Clipboard Manager, please create an issue so I could work on the fixes.
+
 ## 1\. Project Summary and Motivation
 
 This clipboard manager is a powerful tool for Linux users who want to keep a history of the items they've copied. It captures both text and images, storing them for later use. The motivation behind this project is to provide a lightweight, terminal-based clipboard history solution that integrates seamlessly into modern Linux desktop environments, especially those using Wayland and tiling window managers. Unlike many other clipboard managers, this one is designed with a specific focus on providing a simple, floating terminal UI that can be quickly summoned with a keyboard shortcut.
