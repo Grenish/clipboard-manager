@@ -188,6 +188,23 @@ impl ClipboardHistory {
         self.save();
     }
 
+    pub fn delete_entry(&self, index: usize) {
+        let mut entries = self.entries.lock().unwrap();
+        
+        if index < entries.len() {
+            if let Some(removed) = entries.remove(index) {
+                // If it's an image, delete the file from disk
+                if removed.content_type == ClipboardContentType::Image {
+                    let _ = fs::remove_file(self.images_dir.join(&removed.content));
+                }
+                
+            }
+        }
+        
+        drop(entries);
+        self.save();
+    }
+
     pub fn save(&self) {
         let entries = self.entries.lock().unwrap();
         let history_path = self.data_dir.join(HISTORY_FILE);
