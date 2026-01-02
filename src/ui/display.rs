@@ -199,11 +199,14 @@ pub fn show_ui(backend: ClipboardBackend) -> Result<(), Box<dyn std::error::Erro
                         KeyCode::Down | KeyCode::Char('j') => app_state.next(entries_len),
                         KeyCode::Up | KeyCode::Char('k') => app_state.previous(entries_len),
                         KeyCode::Enter if entries_len > 0 => app_state.select(),
-                        KeyCode::Char('d') | KeyCode::Delete if entries_len > 0 => {
+                        KeyCode::Char('d') | KeyCode::Char('D') | KeyCode::Delete if entries_len > 0 => {
                             if let Some(index) = app_state.list_state.selected() {
                                 history.delete_entry(index);
                                 // Adjust selection if we deleted the last item
-                                if index >= history.get_all().len() && index > 0 {
+                                let new_len = history.get_all().len();
+                                if new_len == 0 {
+                                    app_state.list_state.select(None);
+                                } else if index >= new_len {
                                     app_state.list_state.select(Some(index - 1));
                                 }
                             }
