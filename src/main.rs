@@ -76,6 +76,6 @@ fn main() {
     }
 
     println!("\nShutting down...");
-    history.save();
+
     remove_pid_file(&data_dir);
 }
