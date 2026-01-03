@@ -24,23 +24,7 @@ pub fn detect_clipboard_backend() -> ClipboardBackend {
     }
 }
 
-pub fn get_clipboard_types(backend: ClipboardBackend) -> Vec<String> {
-    match backend {
-        ClipboardBackend::WlClipboard => Command::new("wl-paste")
-            .arg("--list-types")
-            .output()
-            .ok()
-            .filter(|output| output.status.success())
-            .map(|output| {
-                String::from_utf8_lossy(&output.stdout)
-                    .lines()
-                    .map(String::from)
-                    .collect()
-            })
-            .unwrap_or_default(),
-        ClipboardBackend::Arboard => Vec::new(),
-    }
-}
+
 
 pub fn get_clipboard_text(backend: ClipboardBackend) -> Option<String> {
     match backend {
