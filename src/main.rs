@@ -37,7 +37,7 @@ fn main() {
 
     // Daemon mode
     println!("╔════════════════════════════════════════╗");
-    println!("║     Clipboard Manager - Daemon Mode   ║");
+    println!("║     Clipboard Manager - Daemon Mode    ║");
     println!("╚════════════════════════════════════════╝\n");
 
     let history = Arc::new(ClipboardHistory::new());

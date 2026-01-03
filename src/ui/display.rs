@@ -58,7 +58,7 @@ pub fn show_ui(backend: ClipboardBackend) -> Result<(), Box<dyn std::error::Erro
                     Line::from(""),
                     Line::from(Span::styled(
                         "Press Y to confirm • N or Esc to cancel",
-                        Style::default().fg(Color::DarkGray),
+                        Style::default().fg(Color::Gray),
                     )),
                 ])
                 .alignment(Alignment::Center)
@@ -106,7 +106,7 @@ pub fn show_ui(backend: ClipboardBackend) -> Result<(), Box<dyn std::error::Erro
                     Line::from(""),
                     Line::from(Span::styled(
                         "Press Esc to close",
-                        Style::default().fg(Color::DarkGray),
+                        Style::default().fg(Color::Gray),
                     )),
                 ])
                 .alignment(Alignment::Center)
@@ -146,7 +146,7 @@ pub fn show_ui(backend: ClipboardBackend) -> Result<(), Box<dyn std::error::Erro
                             Span::styled(entry.display_content(), Style::default().fg(color)),
                             Span::styled(
                                 format!(" {}", entry.formatted_time()),
-                                Style::default().fg(Color::DarkGray),
+                                Style::default().fg(Color::Gray),
                             ),
                         ]))
                     })
@@ -167,10 +167,9 @@ pub fn show_ui(backend: ClipboardBackend) -> Result<(), Box<dyn std::error::Erro
                     .highlight_symbol("▶ ");
 
                 f.render_stateful_widget(list, chunks[0], &mut app_state.list_state);
-
                 let footer =
-                    Paragraph::new("↑↓: Navigate  │  Enter: Copy  │  C: Clear All  │  Esc: Close")
-                        .style(Style::default().fg(Color::DarkGray))
+                    Paragraph::new("↑↓: Navigate  │  Enter: Copy  │  D: Delete Selected  │  C: Clear All  │  Esc: Close")
+                        .style(Style::default().fg(Color::Gray))
                         .alignment(Alignment::Center);
 
                 f.render_widget(footer, chunks[1]);
@@ -200,6 +199,18 @@ pub fn show_ui(backend: ClipboardBackend) -> Result<(), Box<dyn std::error::Erro
                         KeyCode::Down | KeyCode::Char('j') => app_state.next(entries_len),
                         KeyCode::Up | KeyCode::Char('k') => app_state.previous(entries_len),
                         KeyCode::Enter if entries_len > 0 => app_state.select(),
+                        KeyCode::Char('d') | KeyCode::Char('D') | KeyCode::Delete if entries_len > 0 => {
+                            if let Some(index) = app_state.list_state.selected() {
+                                history.delete_entry(index);
+                                // Adjust selection if we deleted the last item
+                                let new_len = history.get_all().len();
+                                if new_len == 0 {
+                                    app_state.list_state.select(None);
+                                } else if index >= new_len {
+                                    app_state.list_state.select(Some(index - 1));
+                                }
+                            }
+                        }
                         _ => {}
                     }
                 }
