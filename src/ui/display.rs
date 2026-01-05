@@ -9,7 +9,7 @@ use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout},
     style::{Color, Modifier, Style},
     text::{Line, Span},
-    widgets::{Block, Borders, List, ListItem, Paragraph},
+    widgets::{Block, Borders, BorderType, List, ListItem, Paragraph},
 };
 
 use crate::clipboard::{ClipboardBackend, set_clipboard_image, set_clipboard_text};
@@ -130,22 +130,50 @@ pub fn show_ui(backend: ClipboardBackend) -> Result<(), Box<dyn std::error::Erro
                 // Main UI
                 let chunks = Layout::default()
                     .direction(Direction::Vertical)
-                    .constraints([Constraint::Min(0), Constraint::Length(2)])
+                    .constraints([
+                        Constraint::Length(3), // Header
+                        Constraint::Min(0),    // List
+                        Constraint::Length(3), // Footer
+                    ])
                     .split(f.area());
 
+                // Header
+                let header = Paragraph::new(vec![
+                    Line::from(vec![
+                        Span::styled(" 📋 Clipboard Manager ", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)),
+                        Span::styled(format!(" | {} items ", entries.len()), Style::default().fg(Color::DarkGray)),
+                    ]),
+                ])
+                .block(
+                    Block::default()
+                        .borders(Borders::ALL)
+                        .border_type(BorderType::Rounded)
+                        .border_style(Style::default().fg(Color::DarkGray)),
+                )
+                .alignment(Alignment::Center);
+                
+                f.render_widget(header, chunks[0]);
+
+                // List
                 let items: Vec<ListItem> = entries
                     .iter()
                     .map(|entry| {
-                        let color = match entry.content_type {
-                            ClipboardContentType::Text => Color::White,
-                            ClipboardContentType::Image => Color::Cyan,
+                        let (icon, color, _) = match entry.content_type {
+                            ClipboardContentType::Text => ("📝", Color::White, "Text"),
+                            ClipboardContentType::Image => ("🖼️", Color::Cyan, "Image"),
                         };
-
+                        
+                        // We style the selection later in highlight_style, but here we define the item content
+                        // Let's make it look cleaner: "Icon  Content  ...  Time"
+                        // Ratatui ListItems are simple, we can't easily do columns without a Table widget,
+                        // but List is fine for now. We can pad the string.
+                        
                         ListItem::new(Line::from(vec![
-                            Span::styled(format!(" {} ", entry.icon()), Style::default().fg(color)),
+                            Span::styled(format!(" {} ", icon), Style::default().fg(color)),
                             Span::styled(entry.display_content(), Style::default().fg(color)),
+                            Span::raw(" "),
                             Span::styled(
-                                format!(" {}", entry.formatted_time()),
+                                format!("({})", entry.formatted_time()),
                                 Style::default().fg(Color::DarkGray),
                             ),
                         ]))
@@ -155,25 +183,41 @@ pub fn show_ui(backend: ClipboardBackend) -> Result<(), Box<dyn std::error::Erro
                 let list = List::new(items)
                     .block(
                         Block::default()
-                            .title(format!(" Clipboard ({}) ", entries.len()))
                             .borders(Borders::ALL)
-                            .border_style(Style::default().fg(Color::Cyan)),
+                            .border_type(BorderType::Rounded)
+                            .border_style(Style::default().fg(Color::Blue))
+                            .title(" History ")
+                            .title_style(Style::default().fg(Color::Blue).add_modifier(Modifier::BOLD)),
                     )
                     .highlight_style(
                         Style::default()
-                            .bg(Color::Blue)
+                            .bg(Color::DarkGray)
                             .add_modifier(Modifier::BOLD),
                     )
-                    .highlight_symbol("▶ ");
+                    .highlight_symbol("▌ ");
 
-                f.render_stateful_widget(list, chunks[0], &mut app_state.list_state);
+                f.render_stateful_widget(list, chunks[1], &mut app_state.list_state);
 
-                let footer =
-                    Paragraph::new("↑↓: Navigate  │  Enter: Copy  │  C: Clear All  │  Esc: Close")
-                        .style(Style::default().fg(Color::DarkGray))
-                        .alignment(Alignment::Center);
+                // Footer
+                let footer = Paragraph::new(Line::from(vec![
+                    Span::styled(" ↑/↓ ", Style::default().fg(Color::Cyan)),
+                    Span::raw("Navigate  "),
+                    Span::styled(" Enter ", Style::default().fg(Color::Cyan)),
+                    Span::raw("Copy  "),
+                    Span::styled(" C ", Style::default().fg(Color::Red)),
+                    Span::raw("Clear  "),
+                    Span::styled(" Esc ", Style::default().fg(Color::Yellow)),
+                    Span::raw("Quit "),
+                ]))
+                .block(
+                    Block::default()
+                        .borders(Borders::ALL)
+                        .border_type(BorderType::Rounded)
+                        .border_style(Style::default().fg(Color::DarkGray)),
+                )
+                .alignment(Alignment::Center);
 
-                f.render_widget(footer, chunks[1]);
+                f.render_widget(footer, chunks[2]);
             }
         })?;
 
