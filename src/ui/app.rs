@@ -8,7 +8,10 @@ pub struct AppState {
     pub list_state: ListState,
     pub should_quit: bool,
     pub selected_index: Option<usize>,
+    pub selected_entry: Option<crate::models::ClipboardEntry>,
     pub show_clear_confirm: bool,
+    pub is_searching: bool,
+    pub search_query: String,
 }
 
 impl AppState {
@@ -17,7 +20,10 @@ impl AppState {
             list_state: ListState::default(),
             should_quit: false,
             selected_index: None,
+            selected_entry: None,
             show_clear_confirm: false,
+            is_searching: false,
+            search_query: String::new(),
         };
         state.list_state.select(Some(0));
         state
