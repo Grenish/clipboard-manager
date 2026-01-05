@@ -108,10 +108,5 @@ impl ClipboardEntry {
         }
     }
 
-    pub fn icon(&self) -> &'static str {
-        match self.content_type {
-            ClipboardContentType::Text => "📝",
-            ClipboardContentType::Image => "🖼️",
-        }
-    }
+
 }
