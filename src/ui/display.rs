@@ -6,10 +6,10 @@ use crossterm::{
 use ratatui::{
     Terminal,
     backend::CrosstermBackend,
-    layout::{Alignment, Constraint, Direction, Layout},
+    layout::{Alignment, Constraint, Direction, Layout, Margin},
     style::{Color, Modifier, Style},
     text::{Line, Span},
-    widgets::{Block, Borders, List, ListItem, Paragraph},
+    widgets::{Block, Borders, BorderType, List, ListItem, Paragraph},
 };
 
 use crate::clipboard::{ClipboardBackend, set_clipboard_image, set_clipboard_text};
@@ -128,51 +128,135 @@ pub fn show_ui(backend: ClipboardBackend) -> Result<(), Box<dyn std::error::Erro
                 f.render_widget(text, centered[1]);
             } else {
                 // Main UI
+                // Main UI Layout
                 let chunks = Layout::default()
                     .direction(Direction::Vertical)
-                    .constraints([Constraint::Min(0), Constraint::Length(2)])
+                    .constraints([
+                        Constraint::Length(1), // Header Text
+                        Constraint::Min(0),    // List (Boxed)
+                        Constraint::Length(1), // Footer Text
+                    ])
                     .split(f.area());
+
+                // ========================
+                // 1. HEADER (Styled)
+                // ========================
+                let header_chunks = Layout::default()
+                    .direction(Direction::Horizontal)
+                    .constraints([
+                        Constraint::Percentage(50), // Title
+                        Constraint::Percentage(50), // Stats
+                    ])
+                    .split(chunks[0]);
+
+                let header_title = Paragraph::new(Span::styled(
+                    " 📋 Clipboard",
+                    Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD),
+                ));
+                f.render_widget(header_title, header_chunks[0]);
+
+                let current_idx = app_state.list_state.selected().unwrap_or(0) + 1;
+                let total_count = entries.len();
+                let max_history = crate::utils::MAX_HISTORY;
+                
+                // Style: "1/5" (White) " | " (DarkGray) "50" (DarkGray)
+                let stats_spans = vec![
+                    Span::styled(
+                        format!("{}/{}", current_idx, total_count), 
+                        Style::default().fg(Color::White).add_modifier(Modifier::BOLD)
+                    ),
+                    Span::styled(
+                        format!(" | max {}", max_history), 
+                        Style::default().fg(Color::DarkGray)
+                    ),
+                ];
+
+                let header_stats = Paragraph::new(Line::from(stats_spans))
+                    .alignment(Alignment::Right);
+                f.render_widget(header_stats, header_chunks[1]);
+
+                // ========================
+                // 2. LIST (Themed)
+                // ========================
+                
+                // Calculate valid width for content inside list
+                let list_inner_width = chunks[1].width.saturating_sub(4) as usize; 
 
                 let items: Vec<ListItem> = entries
                     .iter()
                     .map(|entry| {
-                        let color = match entry.content_type {
-                            ClipboardContentType::Text => Color::White,
-                            ClipboardContentType::Image => Color::Cyan,
-                        };
+                        let mut lines = vec![];
+                        
+                        // Content Preview 
+                        // We rely on the List's style for the text color (Gray), 
+                        // and Highlight style for selected (White).
+                        // So we don't hardcode Color::White here anymore.
+                        let preview = entry.preview_lines();
+                        for line in preview {
+                            lines.push(Line::from(format!(" {}", line)));
+                        }
+                        
+                        // Metadata (Right Aligned)
+                        let meta = entry.metadata_label();
+                        let paddable_width = list_inner_width.saturating_sub(1);
+                        
+                        let aligned_meta = format!("{:>width$}", meta, width = paddable_width);
 
-                        ListItem::new(Line::from(vec![
-                            Span::styled(format!(" {} ", entry.icon()), Style::default().fg(color)),
-                            Span::styled(entry.display_content(), Style::default().fg(color)),
-                            Span::styled(
-                                format!(" {}", entry.formatted_time()),
-                                Style::default().fg(Color::Gray),
-                            ),
-                        ]))
+                        lines.push(Line::from(Span::styled(
+                            aligned_meta, 
+                            Style::default().fg(Color::DarkGray) // Metadata stays dim
+                        )));
+                        
+                        // Add spacing
+                        lines.push(Line::from(""));
+
+                        ListItem::new(lines)
                     })
                     .collect();
 
                 let list = List::new(items)
                     .block(
                         Block::default()
-                            .title(format!(" Clipboard ({}) ", entries.len()))
                             .borders(Borders::ALL)
-                            .border_style(Style::default().fg(Color::Cyan)),
+                            .border_type(BorderType::Rounded)
+                            .border_style(Style::default().fg(Color::Cyan)) // Accent Border
                     )
+                    .style(Style::default().fg(Color::Gray)) // Default "Comfy" Text
                     .highlight_style(
                         Style::default()
-                            .bg(Color::Blue)
+                            .fg(Color::White)
                             .add_modifier(Modifier::BOLD),
                     )
-                    .highlight_symbol("▶ ");
+                    .highlight_symbol("▍ ");
 
-                f.render_stateful_widget(list, chunks[0], &mut app_state.list_state);
-                let footer =
-                    Paragraph::new("↑↓: Navigate  │  Enter: Copy  │  D: Delete Selected  │  C: Clear All  │  Esc: Close")
-                        .style(Style::default().fg(Color::Gray))
-                        .alignment(Alignment::Center);
+                f.render_stateful_widget(list, chunks[1], &mut app_state.list_state);
 
-                f.render_widget(footer, chunks[1]);
+                // ========================
+                // 3. FOOTER (Styled Keys)
+                // ========================
+                // Format: <Key> Action | <Key> Action
+                let key_style = Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD);
+                let text_style = Style::default().fg(Color::White); // Brighter text
+                let sep_style = Style::default().fg(Color::DarkGray); // Visible separator
+
+                let footer_spans = vec![
+                    Span::styled("↑↓", key_style), Span::styled(" Nav ", text_style),
+                    Span::styled("|", sep_style),
+                    Span::styled(" Enter", key_style), Span::styled(" Copy ", text_style),
+                    Span::styled("|", sep_style),
+                    Span::styled(" D", key_style), Span::styled(" Del ", text_style),
+                    Span::styled("|", sep_style),
+                    Span::styled(" S", key_style), Span::styled(" Search ", text_style),
+                    Span::styled("|", sep_style),
+                    Span::styled(" C", key_style), Span::styled(" Clear ", text_style),
+                    Span::styled("|", sep_style),
+                    Span::styled(" Esc", key_style), Span::styled(" Close", text_style),
+                ];
+
+                let footer = Paragraph::new(Line::from(footer_spans))
+                    .alignment(Alignment::Center);
+
+                f.render_widget(footer, chunks[2]);
             }
         })?;
 
