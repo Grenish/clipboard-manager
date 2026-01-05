@@ -182,7 +182,7 @@ impl ClipboardHistory {
         }
 
         *self.entries.lock().unwrap() = loaded_entries;
-        println!("↻ Loaded history from disk");
+
     }
 
     pub fn data_dir(&self) -> &PathBuf {
