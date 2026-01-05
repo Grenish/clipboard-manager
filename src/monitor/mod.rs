@@ -3,3 +3,5 @@ pub mod signal;
 
 pub use process::*;
 pub use signal::*;
+pub mod wayland;
+
