@@ -1,5 +1,13 @@
 /target
 
 
+
+# AUR Build Artifacts
+/src/clipboard-manager
+/clipboard-manager
+/pkg
+/clipboard-manager-rs-git
+
+# Package files
 *.pkg.tar.zst
 *.pkg.tar.*
