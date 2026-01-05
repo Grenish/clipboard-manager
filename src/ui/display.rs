@@ -1,5 +1,5 @@
 use crossterm::{
-    event::{self, Event as CrosstermEvent, KeyCode, KeyEvent},
+    event::{self, Event as CrosstermEvent, KeyCode},
     execute,
     terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
 };
@@ -360,30 +360,7 @@ pub fn show_ui(backend: ClipboardBackend) -> Result<(), Box<dyn std::error::Erro
             }
         }
         
-        if app_state.should_quit {
-            // If searching and quit via Enter, we need to handle the SELECTION.
-            // app_state.selected_index is set by select(). 
-            // BUT, selected index corresponds to 'filtered_entries', not 'all_entries'.
-            // We need to resolve the actual entry BEFORE breaking loop if we selected from filtered.
-            if let Some(idx) = app_state.selected_index {
-                 if let Some(selected_entry) = filtered_entries.get(idx) {
-                     // We need to pass THIS entry to the backend.
-                     // But the outer logic uses: 'if let Some(index) = app_state.selected_index { let entries = history.get_all(); ... }'
-                     // This will grab the WRONG entry if filtered!
-                     // We must fix the outer logic.
-                     // A cleaner way: Store the 'selected_entry_content' in app_state? Or just resolve it here.
-                     // Let's modify the outer loop to return the selected Entry, not just index.
-                     // Or easier: when breaking, set a specific "PendingAction" in AppState with the content.
-                     // Or just handle copy HERE and then app_state.should_quit = true?
-                     // No, show_ui returns Result<()>.
-                     
-                     // Let's rely on `filtered_entries` being available? No, it's inside the loop.
-                     // Refactor:
-                     // We need to capture the selected entry content BEFORE breaking the loop.
-                 }
-            }
-            break;
-        }
+
 
         if app_state.should_quit {
             // Capture selected entry before exiting if we were selecting
