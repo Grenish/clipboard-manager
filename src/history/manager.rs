@@ -1,8 +1,9 @@
 use std::collections::VecDeque;
-use std::fs;
+use std::fs::{self, OpenOptions};
+use std::io::{BufRead, BufReader, Write};
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
-use std::time::SystemTime;
+
 
 use crate::models::{ClipboardContentType, ClipboardEntry, ImageInfo};
 use crate::utils::{HISTORY_FILE, IMAGES_DIR, MAX_HISTORY, format_size};
@@ -15,7 +16,6 @@ pub struct ClipboardHistory {
     entries: Arc<Mutex<VecDeque<ClipboardEntry>>>,
     data_dir: PathBuf,
     images_dir: PathBuf,
-    last_modified: Arc<Mutex<Option<SystemTime>>>,
 }
 
 impl ClipboardHistory {
@@ -33,55 +33,16 @@ impl ClipboardHistory {
             entries: Arc::new(Mutex::new(VecDeque::with_capacity(MAX_HISTORY))),
             data_dir,
             images_dir,
-            last_modified: Arc::new(Mutex::new(None)),
         };
 
         history.load();
         history
     }
 
-    pub fn check_and_reload(&self) {
-        let history_path = self.data_dir.join(HISTORY_FILE);
-
-        if let Ok(metadata) = fs::metadata(&history_path) {
-            if let Ok(modified) = metadata.modified() {
-                let last_mod = self.last_modified.lock().unwrap();
-
-                // If file was modified externally, reload it
-                if last_mod.map_or(true, |last| modified > last) {
-                    drop(last_mod); // Release lock before loading
-
-                    if let Ok(json) = fs::read_to_string(&history_path) {
-                        if let Ok(mut loaded_entries) =
-                            serde_json::from_str::<VecDeque<ClipboardEntry>>(&json)
-                        {
-                            // Recompute hashes for loaded entries
-                            for entry in loaded_entries.iter_mut() {
-                                entry.compute_hash();
-                            }
-
-                            let mut entries = self.entries.lock().unwrap();
-                            *entries = loaded_entries;
-
-                            // Update last modified time
-                            let mut last_mod = self.last_modified.lock().unwrap();
-                            *last_mod = Some(modified);
-
-                            println!("↻ Reloaded history from disk ({} items)", entries.len());
-                        }
-                    }
-                }
-            }
-        }
-    }
-
     pub fn add_text(&self, content: String) {
         if content.trim().is_empty() {
             return;
         }
-
-        // Check if file was modified externally before adding
-        self.check_and_reload();
 
         let entry = ClipboardEntry::new_text(content.clone());
         let mut entries = self.entries.lock().unwrap();
@@ -91,32 +52,20 @@ impl ClipboardHistory {
             return;
         }
 
-        entries.push_front(entry);
+        entries.push_front(entry.clone());
 
-        // Remove old entries
-        while entries.len() > MAX_HISTORY {
-            if let Some(old_entry) = entries.pop_back() {
-                if old_entry.content_type == ClipboardContentType::Image {
-                    let _ = fs::remove_file(self.images_dir.join(&old_entry.content));
-                }
-            }
-        }
+        // Remove old entries from memory
+        self.cleanup_old_entries(&mut entries);
 
-        drop(entries);
-        println!(
-            "✓ Added text ({} chars) - Total: {}",
-            content.len(),
-            self.entries.lock().unwrap().len()
-        );
-        self.save();
+        drop(entries); // unlock before I/O
+        
+        println!("✓ Added text ({} chars)", content.len());
+        self.append_entry(&entry);
     }
 
     pub fn add_image(&self, image_data: Vec<u8>) -> Result<(), String> {
         use std::collections::hash_map::DefaultHasher;
         use std::hash::{Hash, Hasher};
-
-        // Check if file was modified externally before adding
-        self.check_and_reload();
 
         let mut hasher = DefaultHasher::new();
         image_data.hash(&mut hasher);
@@ -144,17 +93,24 @@ impl ClipboardHistory {
             size_bytes: image_data.len() as u64,
         };
 
+        let entry = ClipboardEntry::new_image(filename, info, hash);
+        
         println!(
-            "✓ Added image {}×{} ({}) - Total: {}",
-            info.width,
-            info.height,
-            format_size(info.size_bytes),
-            entries.len() + 1
+            "✓ Added image {}×{} ({})",
+            entry.image_info.as_ref().unwrap().width,
+            entry.image_info.as_ref().unwrap().height,
+            format_size(entry.image_info.as_ref().unwrap().size_bytes)
         );
 
-        let entry = ClipboardEntry::new_image(filename, info, hash);
-        entries.push_front(entry);
-
+        entries.push_front(entry.clone());
+        self.cleanup_old_entries(&mut entries);
+        
+        drop(entries);
+        self.append_entry(&entry);
+        Ok(())
+    }
+    
+    fn cleanup_old_entries(&self, entries: &mut VecDeque<ClipboardEntry>) {
         while entries.len() > MAX_HISTORY {
             if let Some(old_entry) = entries.pop_back() {
                 if old_entry.content_type == ClipboardContentType::Image {
@@ -162,10 +118,6 @@ impl ClipboardHistory {
                 }
             }
         }
-
-        drop(entries);
-        self.save();
-        Ok(())
     }
 
     pub fn get_all(&self) -> Vec<ClipboardEntry> {
@@ -184,62 +136,81 @@ impl ClipboardHistory {
 
         entries.clear();
         drop(entries);
-        println!("✓ Cleared all history");
-        self.save();
-    }
-
-    pub fn delete_entry(&self, index: usize) {
-        let mut entries = self.entries.lock().unwrap();
         
-        if index < entries.len() {
-            if let Some(removed) = entries.remove(index) {
-                // If it's an image, delete the file from disk
-                if removed.content_type == ClipboardContentType::Image {
-                    let _ = fs::remove_file(self.images_dir.join(&removed.content));
-                }
-                
-            }
-        }
-        
-        drop(entries);
-        self.save();
-    }
-
-    pub fn save(&self) {
-        let entries = self.entries.lock().unwrap();
+        // Truncate file
         let history_path = self.data_dir.join(HISTORY_FILE);
+        let _ = fs::File::create(history_path); // Create truncates
+        
+        println!("✓ Cleared all history");
+    }
 
-        if let Ok(json) = serde_json::to_string(&*entries) {
-            if fs::write(&history_path, json).is_ok() {
-                // Update last modified time after successful save
-                if let Ok(metadata) = fs::metadata(&history_path) {
-                    if let Ok(modified) = metadata.modified() {
-                        let mut last_mod = self.last_modified.lock().unwrap();
-                        *last_mod = Some(modified);
-                    }
-                }
-            }
+    fn append_entry(&self, entry: &ClipboardEntry) {
+        let history_path = self.data_dir.join(HISTORY_FILE);
+        if let Ok(mut file) = OpenOptions::new().create(true).append(true).open(history_path) {
+             if let Ok(json) = serde_json::to_string(entry) {
+                 let _ = writeln!(file, "{}", json);
+             }
         }
     }
 
     fn load(&mut self) {
         let history_path = self.data_dir.join(HISTORY_FILE);
+        let mut loaded_entries = VecDeque::new();
 
-        if let Ok(json) = fs::read_to_string(&history_path) {
-            if let Ok(mut loaded_entries) = serde_json::from_str::<VecDeque<ClipboardEntry>>(&json)
-            {
-                // Recompute hashes for loaded entries
-                for entry in loaded_entries.iter_mut() {
-                    entry.compute_hash();
-                }
-                *self.entries.lock().unwrap() = loaded_entries;
-
-                // Set initial last modified time
-                if let Ok(metadata) = fs::metadata(&history_path) {
-                    if let Ok(modified) = metadata.modified() {
-                        *self.last_modified.lock().unwrap() = Some(modified);
+        if let Ok(file) = fs::File::open(&history_path) {
+            let reader = BufReader::new(file);
+            for line in reader.lines() {
+                if let Ok(line) = line {
+                    if let Ok(mut entry) = serde_json::from_str::<ClipboardEntry>(&line) {
+                         entry.compute_hash();
+                         loaded_entries.push_front(entry);
                     }
                 }
+            }
+        }
+        
+        while loaded_entries.len() > MAX_HISTORY {
+             loaded_entries.pop_back();
+        }
+
+        *self.entries.lock().unwrap() = loaded_entries;
+    }
+    
+    // Helper to delete specific entry (used by UI)
+    pub fn delete_entry(&self, index: usize) {
+        let mut entries = self.entries.lock().unwrap();
+        
+        if index < entries.len() {
+            if let Some(removed) = entries.remove(index) {
+                if removed.content_type == ClipboardContentType::Image {
+                    let _ = fs::remove_file(self.images_dir.join(&removed.content));
+                }
+            }
+        }
+        
+        drop(entries);
+        // Rewriting the file is necessary when deleting from middle, sadly.
+        // But deletes are rare compared to appends.
+        self.rewrite_history();
+    }
+    
+    fn rewrite_history(&self) {
+        let entries = self.entries.lock().unwrap();
+        let history_path = self.data_dir.join(HISTORY_FILE);
+        if let Ok(mut file) = fs::File::create(&history_path) {
+            // Write in reverse order (oldest to newest) or keep order?
+            // load() reads line by line and pushes front... wait.
+            // If we write current deque (newest first) to file, then load() reads first line (newest) and pushes front.
+            // So deque becomes [newest, 2nd newest..].
+            // If we append:
+            // File: [Old1, Old2, New3]
+            // Load: reads Old1 -> Entry is [Old1]. reads Old2 -> Entry is [Old2, Old1]. reads New3 -> Entry is [New3, Old2, Old1].
+            // Correct.
+            // So when rewriting, we should write from Oldest to Newest (back to front).
+            for entry in entries.iter().rev() {
+                 if let Ok(json) = serde_json::to_string(entry) {
+                     let _ = writeln!(file, "{}", json);
+                 }
             }
         }
     }
