@@ -80,21 +80,25 @@ pub fn get_clipboard_image(backend: ClipboardBackend) -> Option<Vec<u8>> {
 
 pub fn set_clipboard_text(content: &str, backend: ClipboardBackend) -> Result<(), String> {
     match backend {
-        ClipboardBackend::WlClipboard => Command::new("wl-copy")
-            .arg("--")
-            .arg(content)
-            .output()
-            .map_err(|e| format!("Failed to run wl-copy: {}", e))
-            .and_then(|output| {
-                if output.status.success() {
-                    Ok(())
-                } else {
-                    Err(format!(
-                        "wl-copy failed: {}",
-                        String::from_utf8_lossy(&output.stderr)
-                    ))
-                }
-            }),
+        ClipboardBackend::WlClipboard => {
+            // Use spawn() and wait() to avoid hanging on pipes if wl-copy backgrounds
+            // We do NOT capture stdout/stderr to avoid blocking
+            let mut child = Command::new("wl-copy")
+                .arg("--")
+                .arg(content)
+                .spawn()
+                .map_err(|e| format!("Failed to spawn wl-copy: {}", e))?;
+                
+            child.wait()
+                .map_err(|e| format!("wl-copy failed: {}", e))
+                .and_then(|status| {
+                    if status.success() {
+                        Ok(())
+                    } else {
+                        Err(format!("wl-copy exited with status: {}", status))
+                    }
+                })
+        }
         ClipboardBackend::Arboard => Clipboard::new()
             .and_then(|mut cb| cb.set_text(content))
             .map_err(|e| format!("Failed to set text: {}", e)),
