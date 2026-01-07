@@ -1,101 +1,76 @@
-# Clipboard Manager [WIP]
+# Clipboard Manager
 
-A Windows-like clipboard manager for Linux, designed for efficiency and ease of use, particularly for users of tiling window managers like Hyprland.
+A lightweight, terminal-based clipboard manager for Linux, designed for efficiency and seamless integration with tiling window managers like Hyprland.
 
-## 1\. Project Summary and Motivation
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Rust](https://img.shields.io/badge/language-Rust-orange.svg)](https://www.rust-lang.org/)
 
-This clipboard manager is a powerful tool for Linux users who want to keep a history of the items they've copied. It captures both text and images, storing them for later use. The motivation behind this project is to provide a lightweight, terminal-based clipboard history solution that integrates seamlessly into modern Linux desktop environments, especially those using Wayland and tiling window managers. Unlike many other clipboard managers, this one is designed with a specific focus on providing a simple, floating terminal UI that can be quickly summoned with a keyboard shortcut.
+## Overview
 
-## 2\. Feature List and Target Audience
+Clipboard Manager is a high-performance daemon and TUI (Text User Interface) tool that captures and manages clipboard history. It supports both text and images, offering a persisting history that survives reboots. Built with Rust, it prioritizes low resource usage and speed, making it an ideal companion for keyboard-centric workflows on Wayland and X11.
 
-### Features
+## Features
 
-- **Clipboard History**: Keeps a record of the last 50 items copied to the clipboard.
-- **Text and Image Support**: Captures both text and image data.
-- **Daemon Mode**: Runs as a background process to continuously monitor the clipboard.
-- **Terminal UI**: A simple, intuitive terminal-based user interface for browsing and selecting clipboard history.
-- **Wayland and X11 Support**: Automatically detects and supports both Wayland (using `wl-clipboard`) and X11 (using `arboard`).
-- **Duplicate Prevention**: Avoids saving duplicate entries by hashing clipboard content.
-- **Persistent History**: Saves the clipboard history to a JSON file, so it persists across reboots.
-- **Image Previews**: Displays image dimensions and file sizes in the history list.
+- **Clipboard History**: Automatically captures the last 50 clipboard entries.
+- **Content Support**: Handles both text and images (with preview metadata).
+- **Persistence**: History is saved to disk, preserving context across sessions.
+- **Daemon Mode**: Efficient background process for continuous monitoring.
+- **Terminal UI**: Fast, responsive `ratatui`-based interface for history navigation.
+- **Protocol Support**: Native support for Wayland (`wl-clipboard`) and X11.
+- **Deduplication**: Content hashing prevents duplicate entries.
 
-### Target Audience
+## Architecture
 
-This project is aimed at Linux power users, developers, and anyone who frequently works with text and images and wants a more efficient clipboard workflow. It's particularly well-suited for users of tiling window managers like Hyprland who prefer keyboard-driven, terminal-based tools.
+The system operates as two distinct components:
 
-## 3\. Architecture and Internal Flow
-
-The application is architected into two main components: a background **daemon** that monitors the clipboard and a terminal-based **user interface (TUI)** for interacting with the clipboard history.
-
-### Architecture Diagram
+1.  **Daemon**: A background service that polls the system clipboard (150ms interval), detects changes, computes content hashes, and updates the persistent storage.
+2.  **TUI Client**: A transient interface triggered by the user to browse history and inject selected content back into the system clipboard.
 
 ![Architecture Diagram](dia.svg)
 
-### Internal Flow
+## Installation
 
-1.  **Daemon Initialization**: When the application is started without the `--ui` flag, it enters daemon mode.
-2.  **Clipboard Monitoring**: The daemon spawns a thread that continuously polls the system clipboard at a set interval (150ms).
-3.  **Content Detection**: The monitor checks for new text or image content. It prioritizes images over text if both are present.
-4.  **Hashing and Duplicate Check**: When new content is detected, its hash is computed and compared against the hashes of existing entries in the history to prevent duplicates.
-5.  **History Management**: If the content is new, a `ClipboardEntry` is created and added to the front of a `VecDeque`. Text is stored directly, while images are saved to an `images` directory and the filename is stored. The history is capped at a maximum number of entries (50).
-6.  **Persistence**: The clipboard history is serialized to a JSON file (`clipboard_history.json`) in the user's data directory.
-7.  **UI Trigger**: The user can trigger the TUI with a keyboard shortcut. A trigger script is created to launch the UI in a floating terminal window.
-8.  **UI Display**: The TUI, built with `ratatui`, reads the JSON history file and displays the entries in a list.
-9.  **User Selection**: The user can navigate the list and select an entry.
-10. **Clipboard Update**: When an entry is selected, its content is copied back to the system clipboard.
+### AUR (Arch User Repository)
 
-## 4\. Development and Installation
-
-### Prerequisites
-
-- Rust and Cargo
-- `wl-clipboard` (for Wayland)
-
-### Installation from Source (Cargo)
-
-1.  Clone the repository:
-    ```bash
-    git clone https://github.com/grenish/clipboard-manager.git
-    cd clipboard-manager
-    ```
-2.  Build and install the binary:
-    ```bash
-    cargo install --path .
-    ```
-
-### Installation from AUR (Arch User Repository)
-
-You can install `clipboard-manager` from the Arch User Repository (AUR) using your favorite AUR helper (e.g., `yay`, `paru`).
+For Arch Linux users, the package is available via AUR:
 
 ```bash
 yay -S clipboard-manager-rs-git
 ```
 
-## 5\. Configuration and Usage
+### From Source
 
-### Running the Daemon
+Ensure you have Rust and Cargo installed.
 
-To start the clipboard manager in daemon mode, simply run the binary in your shell:
+```bash
+git clone https://github.com/grenish/clipboard-manager.git
+cd clipboard-manager
+cargo install --path .
+```
+
+*Note: Wayland users require `wl-clipboard` installed.*
+
+## Usage
+
+### 1. Start the Daemon
+
+Launch the daemon in the background (preferably via your window manager's init script):
 
 ```bash
 clipboard-manager &
 ```
 
-It's recommended to add this command to your window manager's startup configuration (e.g., `hyprland.conf`).
+### 2. Configure the Trigger
 
-### Triggering the UI
+The daemon generates a trigger script at `~/.local/share/clipboard-manager/trigger.sh`. Bind this to a hotkey.
 
-The application creates a trigger script at `~/.local/share/clipboard-manager/trigger.sh`. You can bind this script to a keyboard shortcut in your window manager's configuration.
+**Hyprland Configuration Example:**
 
-**Hyprland Example:**
-
-Add the following lines to your `hyprland.conf`:
-
-```
-# Trigger with Super+Comma (You could configure your own)
+```ini
+# Trigger with Super+Comma
 bind = SUPER, comma, exec, ~/.local/share/clipboard-manager/trigger.sh
 
-# Make clipboard window float and centered (like Windows!)
+# Float and center the UI
 windowrulev2 = float, class:(floating-clipboard)
 windowrulev2 = size 900 600, class:(floating-clipboard)
 windowrulev2 = center, class:(floating-clipboard)
@@ -103,21 +78,14 @@ windowrulev2 = animation popin, class:(floating-clipboard)
 windowrulev2 = stayfocused, class:(floating-clipboard)
 ```
 
-## 6\. Testing and CI
+## Data Storage & Security
 
-Currently, the project does not have any automated tests or a CI pipeline. Contributions in this area are welcome.
+- **Storage Location**: `~/.local/share/clipboard-manager/`
+- **History File**: `clipboard_history.json` (Plain text)
+- **Images**: `images/` subdirectory
 
-## 7\. Performance and Security Notes
+**Security Notice**: Clipboard content is stored unencrypted. Avoid copying sensitive secrets (passwords, keys) if disk encryption is not active, or be mindful to clear the history.
 
-### Performance
+## License
 
-- The clipboard is monitored by polling at a fixed interval of 150ms. This approach is simple but may not be the most efficient. Future versions could explore using system-level clipboard events to avoid polling.
-
-### Security
-
-- The clipboard history, including text and paths to images, is stored in a plain-text JSON file in `~/.local/share/clipboard-manager/`. If you copy sensitive information like passwords or private keys, they will be saved to this file in an unencrypted format. Be mindful of this when using the application.
-- Images are stored as PNG files in `~/.local/share/clipboard-manager/images/`.
-
-## 8\. License
-
-This project is licensed under the MIT License. See the [LICENSE](https://www.google.com/search?q=LICENSE) file for details.
+This project is open-source and licensed under the [MIT License](LICENSE).
