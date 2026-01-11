@@ -32,6 +32,9 @@ pub fn start_signal_listener(shutdown_trigger: Arc<AtomicBool>) {
 // ============================================================================
 
 pub fn start_clipboard_monitor(history: Arc<ClipboardHistory>, backend: ClipboardBackend) {
+    // Attempt to configure Hyprland window rules automatically
+    crate::monitor::hyprland::apply_hyprland_rules();
+
     if matches!(backend, ClipboardBackend::WlClipboard) {
         // Use event-driven watcher for Wayland
         crate::monitor::wayland::monitor_wayland(history);
