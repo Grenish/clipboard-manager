@@ -1,4 +1,4 @@
-# Clipboard Manager [WIP]
+# Clipboard Manager
 
 A Windows-like clipboard manager for Linux, designed for efficiency and ease of use, particularly for users of tiling window managers like Hyprland.
 
