@@ -58,11 +58,12 @@ fn main() {
 
     println!("✓ Backend: {:?}", backend);
     println!("✓ Data dir: {}", data_dir.display());
-    println!(
-        "✓ Trigger: {}\n",
-        get_trigger_script_path(&data_dir).display()
-    );
-    println!("Hyprland Config:");
+    println!("✓ Trigger: {}\n", get_trigger_script_path(&data_dir).display());
+    
+    println!("ℹ Auto-configuration enabled for Hyprland."); 
+    println!("  If rules are not applied automatically, use the following config:\n");
+
+    println!("Hyprland Config (v0.52 and older):");
     println!(
         "  bind = SUPER, V, exec, {}",
         get_trigger_script_path(&data_dir).display()
@@ -70,6 +71,15 @@ fn main() {
     println!("  windowrulev2 = float, class:(floating-clipboard)");
     println!("  windowrulev2 = size 900 600, class:(floating-clipboard)");
     println!("  windowrulev2 = center, class:(floating-clipboard)\n");
+
+    println!("Hyprland Config (v0.53+):");
+    println!("  windowrule {{");
+    println!("    match:class = floating-clipboard");
+    println!("    float = on");
+    println!("    size = 900 600");
+    println!("    center = on");
+    println!("    animation = popin");
+    println!("  }}\n");
 
     while !shutdown_trigger.load(Ordering::Relaxed) {
         thread::sleep(Duration::from_millis(100));

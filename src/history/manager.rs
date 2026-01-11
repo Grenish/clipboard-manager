@@ -40,16 +40,18 @@ impl ClipboardHistory {
     }
 
     pub fn add_text(&self, content: String) {
-        if content.trim().is_empty() {
+        let trimmed_content = content.trim().to_string();
+        if trimmed_content.is_empty() {
             return;
         }
 
-        let entry = ClipboardEntry::new_text(content.clone());
+        let entry = ClipboardEntry::new_text(trimmed_content.clone());
         let mut entries = self.entries.lock().unwrap();
 
-        // Skip duplicates using hash comparison
-        if entries.iter().any(|e| e.content_hash == entry.content_hash) {
-            return;
+        // Check for duplicate and remove if exists (move to top behavior)
+        if let Some(pos) = entries.iter().position(|e| e.content_hash == entry.content_hash) {
+            entries.remove(pos);
+            // println!("  ↻ Moving duplicate text to top");
         }
 
         entries.push_front(entry.clone());
@@ -59,7 +61,7 @@ impl ClipboardHistory {
 
         drop(entries); // unlock before I/O
         
-        println!("✓ Added text ({} chars)", content.len());
+        println!("✓ Added text ({} chars)", trimmed_content.len());
         self.append_entry(&entry);
     }
 
@@ -73,8 +75,21 @@ impl ClipboardHistory {
 
         let mut entries = self.entries.lock().unwrap();
 
-        // Skip duplicate images
-        if entries.iter().any(|e| e.content_hash == hash) {
+        // Check for duplicate images (move to top)
+        if let Some(pos) = entries.iter().position(|e| e.content_hash == hash) {
+            let existing_entry = entries.remove(pos).unwrap();
+            
+            // Update timestamp to now so it appears as new
+            // Note: We don't change the filename/content, just the metadata timestamp if possible.
+            // Since we append to file, we should probably append this 'renewed' entry.
+            // Ideally we'd update the timestamp in the struct, assuming it has one.
+            // If not, we just move it.
+            
+            entries.push_front(existing_entry.clone());
+            drop(entries);
+            
+            println!("✓ Moved existing image to top");
+            self.append_entry(&existing_entry);
             return Ok(());
         }
 
@@ -155,7 +170,7 @@ impl ClipboardHistory {
 
     fn load(&mut self) {
         let history_path = self.data_dir.join(HISTORY_FILE);
-        let mut loaded_entries = VecDeque::new();
+        let mut loaded_entries: VecDeque<ClipboardEntry> = VecDeque::new();
 
         if let Ok(file) = fs::File::open(&history_path) {
             let reader = BufReader::new(file);
@@ -163,6 +178,13 @@ impl ClipboardHistory {
                 if let Ok(line) = line {
                     if let Ok(mut entry) = serde_json::from_str::<ClipboardEntry>(&line) {
                          entry.compute_hash();
+                         
+                         // Dedup during load: if exists, remove old one (because we read oldest -> newest)
+                         // This ensures the list corresponds to "latest wins" logic
+                         if let Some(pos) = loaded_entries.iter().position(|e| e.content_hash == entry.content_hash) {
+                             loaded_entries.remove(pos);
+                         }
+                         
                          loaded_entries.push_front(entry);
                     }
                 }
