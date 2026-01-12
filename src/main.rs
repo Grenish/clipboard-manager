@@ -60,26 +60,15 @@ fn main() {
     println!("✓ Data dir: {}", data_dir.display());
     println!("✓ Trigger: {}\n", get_trigger_script_path(&data_dir).display());
     
-    println!("ℹ Auto-configuration enabled for Hyprland."); 
-    println!("  If rules are not applied automatically, use the following config:\n");
-
-    println!("Hyprland Config (v0.52 and older):");
+    println!("ℹ Auto-configuration is active for Hyprland.");
+    println!("  If the window doesn't float, add this rule to hyprland.conf:");
+    println!("    windowrule = float on, match:class floating-clipboard");
+    println!();
     println!(
-        "  bind = SUPER, V, exec, {}",
+        "  Bind key to open UI:\n    bind = SUPER, V, exec, {}",
         get_trigger_script_path(&data_dir).display()
     );
-    println!("  windowrulev2 = float, class:(floating-clipboard)");
-    println!("  windowrulev2 = size 900 600, class:(floating-clipboard)");
-    println!("  windowrulev2 = center, class:(floating-clipboard)\n");
-
-    println!("Hyprland Config (v0.53+):");
-    println!("  windowrule {{");
-    println!("    match:class = floating-clipboard");
-    println!("    float = on");
-    println!("    size = 900 600");
-    println!("    center = on");
-    println!("    animation = popin");
-    println!("  }}\n");
+    println!();
 
     while !shutdown_trigger.load(Ordering::Relaxed) {
         thread::sleep(Duration::from_millis(100));
