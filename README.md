@@ -16,9 +16,10 @@ Clipboard Manager is a high-performance daemon and TUI (Text User Interface) too
 - **Smart Deduplication**: Re-copying existing content moves it to the top of the history.
 - **Persistence**: History is saved to disk, preserving context across sessions.
 - **Auto-Configuration**: Automatically detects Hyprland and applies necessary window rules.
+- **Instant Paste**: Selecting an item instantly pastes it to the target window (requires `wtype`).
 - **Daemon Mode**: Efficient background process for continuous monitoring.
 - **Terminal UI**: Fast, responsive `ratatui`-based interface for history navigation.
-- **Protocol Support**: Native support for Wayland (`wl-clipboard` watcher) and X11.
+- **Protocol Support**: Native support for Wayland (`wl-clipboard` + `wtype`) and X11.
 
 ## Architecture
 
@@ -69,7 +70,7 @@ cd clipboard-manager
 cargo install --path .
 ```
 
-_Note: Wayland users require `wl-clipboard` installed._
+_Note: Wayland users require `wl-clipboard` and `wtype` installed._
 
 ## Usage
 
