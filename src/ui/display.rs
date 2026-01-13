@@ -385,18 +385,32 @@ pub fn show_ui(backend: ClipboardBackend) -> Result<(), Box<dyn std::error::Erro
 
     // Use captured entry instead of index lookup
     if let Some(entry) = app_state.selected_entry {
+        let mut pasted = false;
         match entry.content_type {
             ClipboardContentType::Text => {
                 if set_clipboard_text(&entry.content, backend).is_ok() {
                     println!("✓ Copied to clipboard");
+                    pasted = true;
                 }
             }
             ClipboardContentType::Image => {
                 let image_path = history.images_dir().join(&entry.content);
                 if set_clipboard_image(&image_path, backend).is_ok() {
                     println!("✓ Copied image to clipboard");
+                    pasted = true;
                 }
             }
+        }
+
+        if pasted {
+           // Spawn a detached process to handle pasting after the UI closes
+           // This prevents the clipboard manager window from receiving the simulated keys
+           if let Ok(exe) = std::env::current_exe() {
+               std::process::Command::new(exe)
+                   .arg("--paste")
+                   .spawn()
+                   .ok();
+           }
         }
     }
 
