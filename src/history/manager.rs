@@ -49,20 +49,26 @@ impl ClipboardHistory {
         let mut entries = self.entries.lock().unwrap();
 
         // Check for duplicate and remove if exists (move to top behavior)
+        let mut rewrite = false;
         if let Some(pos) = entries.iter().position(|e| e.content_hash == entry.content_hash) {
             entries.remove(pos);
+            rewrite = true;
             // println!("  ↻ Moving duplicate text to top");
         }
 
         entries.push_front(entry.clone());
 
         // Remove old entries from memory
-        self.cleanup_old_entries(&mut entries);
+        rewrite |= self.cleanup_old_entries(&mut entries);
 
         drop(entries); // unlock before I/O
         
         println!("✓ Added text ({} chars)", trimmed_content.len());
-        self.append_entry(&entry);
+        if rewrite {
+            self.rewrite_history();
+        } else {
+            self.append_entry(&entry);
+        }
     }
 
     pub fn add_image(&self, image_data: Vec<u8>) -> Result<(), String> {
@@ -75,6 +81,7 @@ impl ClipboardHistory {
 
         let mut entries = self.entries.lock().unwrap();
 
+        let mut removed_existing = false;
         // Check for duplicate images (move to top)
         if let Some(pos) = entries.iter().position(|e| e.content_hash == hash) {
             let existing_entry = entries.remove(pos).unwrap();
@@ -86,11 +93,9 @@ impl ClipboardHistory {
             // If not, we just move it.
             
             entries.push_front(existing_entry.clone());
-            drop(entries);
+            removed_existing = true;
             
             println!("✓ Moved existing image to top");
-            self.append_entry(&existing_entry);
-            return Ok(());
         }
 
         let timestamp = chrono::Utc::now().timestamp();
@@ -117,22 +122,33 @@ impl ClipboardHistory {
             format_size(entry.image_info.as_ref().unwrap().size_bytes)
         );
 
-        entries.push_front(entry.clone());
-        self.cleanup_old_entries(&mut entries);
+        if !removed_existing {
+            entries.push_front(entry.clone());
+        }
+        
+        let rewrite = removed_existing || self.cleanup_old_entries(&mut entries);
         
         drop(entries);
-        self.append_entry(&entry);
+        
+        if rewrite {
+            self.rewrite_history();
+        } else {
+            self.append_entry(&entry);
+        }
         Ok(())
     }
     
-    fn cleanup_old_entries(&self, entries: &mut VecDeque<ClipboardEntry>) {
+    fn cleanup_old_entries(&self, entries: &mut VecDeque<ClipboardEntry>) -> bool {
+        let mut cleaned = false;
         while entries.len() > MAX_HISTORY {
             if let Some(old_entry) = entries.pop_back() {
+                cleaned = true;
                 if old_entry.content_type == ClipboardContentType::Image {
                     let _ = fs::remove_file(self.images_dir.join(&old_entry.content));
                 }
             }
         }
+        cleaned
     }
 
     pub fn get_all(&self) -> Vec<ClipboardEntry> {
