@@ -47,60 +47,8 @@ pub fn show_ui(backend: ClipboardBackend) -> Result<(), Box<dyn std::error::Erro
         };
 
         terminal.draw(|f| {
-            if app_state.show_clear_confirm {
-                 // ... (Clear confirm logic remains same, just rendering 'text' widget)
-                 // Re-using existing logic requires minimal changes to structure.
-                 // Ideally I should copy the block from lines 44-69 but since Iam replacing the whole loop body logic effectively...
-                 // Let's stick to replacing the render logic.
-                 
-                let area = f.area();
-                let text = Paragraph::new(vec![
-                    Line::from(""),
-                    Line::from(Span::styled(
-                        "⚠  Clear All History?",
-                        Style::default()
-                            .fg(Color::Yellow)
-                            .add_modifier(Modifier::BOLD),
-                    )),
-                    Line::from(""),
-                    Line::from(Span::styled(
-                        "This will permanently delete all clipboard entries and images.",
-                        Style::default().fg(Color::White),
-                    )),
-                    Line::from(""),
-                    Line::from(Span::styled(
-                        "Press Y to confirm • N or Esc to cancel",
-                        Style::default().fg(Color::Gray),
-                    )),
-                ])
-                .alignment(Alignment::Center)
-                .block(
-                    Block::default()
-                        .borders(Borders::ALL)
-                        .border_style(Style::default().fg(Color::Red)),
-                );
-
-                let centered = Layout::default()
-                    .direction(Direction::Vertical)
-                    .constraints([
-                        Constraint::Percentage(35),
-                        Constraint::Length(9),
-                        Constraint::Percentage(35),
-                    ])
-                    .split(area);
-
-                let h_centered = Layout::default()
-                    .direction(Direction::Horizontal)
-                    .constraints([
-                        Constraint::Percentage(20),
-                        Constraint::Percentage(60),
-                        Constraint::Percentage(20),
-                    ])
-                    .split(centered[1]);
-
-                f.render_widget(text, h_centered[1]);
-
-            } else if all_entries.is_empty() { // Check ORIGINAL list for empty
+            // Background UI
+            if all_entries.is_empty() { // Check ORIGINAL list for empty
                  let area = f.area();
                  let text = Paragraph::new(vec![
                     Line::from(""),
@@ -277,6 +225,58 @@ pub fn show_ui(backend: ClipboardBackend) -> Result<(), Box<dyn std::error::Erro
 
                 f.render_widget(footer, chunks[2]);
             }
+
+            // Modal Overlay
+            if app_state.show_clear_confirm {
+                let area = f.area();
+                let text = Paragraph::new(vec![
+                    Line::from(""),
+                    Line::from(Span::styled(
+                        "⚠  Clear All History?",
+                        Style::default()
+                            .fg(Color::Yellow)
+                            .add_modifier(Modifier::BOLD),
+                    )),
+                    Line::from(""),
+                    Line::from(Span::styled(
+                        "This will permanently delete all clipboard entries and images.",
+                        Style::default().fg(Color::White),
+                    )),
+                    Line::from(""),
+                    Line::from(Span::styled(
+                        "Press Y to confirm • N or Esc to cancel",
+                        Style::default().fg(Color::Gray),
+                    )),
+                ])
+                .alignment(Alignment::Center)
+                .block(
+                    Block::default()
+                        .borders(Borders::ALL)
+                        .border_style(Style::default().fg(Color::Red)),
+                );
+
+                let centered = Layout::default()
+                    .direction(Direction::Vertical)
+                    .constraints([
+                        Constraint::Percentage(35),
+                        Constraint::Length(9),
+                        Constraint::Percentage(35),
+                    ])
+                    .split(area);
+
+                let h_centered = Layout::default()
+                    .direction(Direction::Horizontal)
+                    .constraints([
+                        Constraint::Percentage(20),
+                        Constraint::Percentage(60),
+                        Constraint::Percentage(20),
+                    ])
+                    .split(centered[1]);
+
+                use ratatui::widgets::Clear;
+                f.render_widget(Clear, h_centered[1]);
+                f.render_widget(text, h_centered[1]);
+            }
         })?;
 
         if event::poll(Duration::from_millis(50))? {
@@ -385,18 +385,32 @@ pub fn show_ui(backend: ClipboardBackend) -> Result<(), Box<dyn std::error::Erro
 
     // Use captured entry instead of index lookup
     if let Some(entry) = app_state.selected_entry {
+        let mut pasted = false;
         match entry.content_type {
             ClipboardContentType::Text => {
                 if set_clipboard_text(&entry.content, backend).is_ok() {
                     println!("✓ Copied to clipboard");
+                    pasted = true;
                 }
             }
             ClipboardContentType::Image => {
                 let image_path = history.images_dir().join(&entry.content);
                 if set_clipboard_image(&image_path, backend).is_ok() {
                     println!("✓ Copied image to clipboard");
+                    pasted = true;
                 }
             }
+        }
+
+        if pasted {
+           // Spawn a detached process to handle pasting after the UI closes
+           // This prevents the clipboard manager window from receiving the simulated keys
+           if let Ok(exe) = std::env::current_exe() {
+               std::process::Command::new(exe)
+                   .arg("--paste")
+                   .spawn()
+                   .ok();
+           }
         }
     }
 

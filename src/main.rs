@@ -27,12 +27,17 @@ fn main() {
     let args: Vec<String> = env::args().collect();
     let backend = detect_clipboard_backend();
 
-    if args.len() > 1 && args[1] == "--ui" {
-        if let Err(e) = show_ui(backend) {
-            eprintln!("UI Error: {}", e);
-            std::process::exit(1);
+    if args.len() > 1 {
+        if args[1] == "--ui" {
+            if let Err(e) = show_ui(backend) {
+                eprintln!("UI Error: {}", e);
+                std::process::exit(1);
+            }
+            std::process::exit(0);
+        } else if args[1] == "--paste" {
+            utils::helpers::perform_background_paste(backend);
+            std::process::exit(0);
         }
-        std::process::exit(0);
     }
 
     // Daemon mode
