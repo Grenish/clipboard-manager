@@ -235,7 +235,7 @@ dependencies = [
 
 [[package]]
 name = "clipboard-manager"
-version = "0.1.0"
+version = "0.1.5"
 dependencies = [
  "arboard",
  "base64",
