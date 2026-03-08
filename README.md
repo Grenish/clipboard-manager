@@ -4,6 +4,7 @@ A lightweight, terminal-based clipboard manager for Linux built with Rust. Desig
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Rust](https://img.shields.io/badge/language-Rust-orange.svg)](https://www.rust-lang.org/)
+[![Docs](https://img.shields.io/badge/docs-deepwiki-purple.svg)](https://deepwiki.com/Grenish/clipboard-manager)
 
 ## Features
 
@@ -11,7 +12,6 @@ A lightweight, terminal-based clipboard manager for Linux built with Rust. Desig
 - Smart deduplication — re-copied content moves to top
 - Persistent history across reboots
 - Auto-detection of Hyprland with floating window rules
-- Instant paste via `wtype`
 - Background daemon + `ratatui` TUI
 - Wayland (`wl-clipboard`) and X11 support
 
@@ -44,7 +44,7 @@ cd clipboard-manager
 cargo install --path .
 ```
 
-> Wayland users need `wl-clipboard` and `wtype` installed.
+> Wayland users need `wl-clipboard` installed. Auto-paste is not yet implemented.
 
 ## Usage
 
@@ -97,6 +97,10 @@ Clipboard content is stored in plain text. Be mindful when copying sensitive dat
 sudo rm /usr/local/bin/clipboard-manager
 rm -rf ~/.local/share/clipboard-manager
 ```
+
+## Docs
+
+For detailed documentation, visit [deepwiki.com/Grenish/clipboard-manager](https://deepwiki.com/Grenish/clipboard-manager).
 
 ## License
 
