@@ -55,7 +55,7 @@ body:
     attributes:
       label: Clipboard Manager Version
       description: Run `clipboard-manager --version` or check Cargo.toml
-      placeholder: e.g., 0.1.5
+      placeholder: e.g., 0.1.6
     validations:
       required: true
 

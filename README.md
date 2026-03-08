@@ -30,7 +30,7 @@ curl -fsSL https://raw.githubusercontent.com/Grenish/clipboard-manager/main/inst
 To install a specific version:
 
 ```bash
-VERSION=v0.1.5 curl -fsSL https://raw.githubusercontent.com/Grenish/clipboard-manager/main/install.sh | bash
+VERSION=v0.1.6 curl -fsSL https://raw.githubusercontent.com/Grenish/clipboard-manager/main/install.sh | bash
 ```
 
 ### AUR (Arch Linux)
