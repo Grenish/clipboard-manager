@@ -83,7 +83,7 @@ get_latest_version() {
     if [ -z "$version" ]; then
         error "Failed to fetch latest version from GitHub."
         error "Please check your internet connection or specify VERSION manually."
-        error "  VERSION=v0.1.5 bash install.sh"
+        error "  VERSION=v0.1.6 bash install.sh"
         exit 1
     fi
 
