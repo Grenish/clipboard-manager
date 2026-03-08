@@ -1,0 +1,91 @@
+name: ❓ Question / Help
+description: Ask a question about usage, setup, or configuration
+title: "[Question]: "
+labels: ["question"]
+assignees: ["Grenish"]
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Have a question about Clipboard Manager? We're happy to help!
+        Please check the [documentation](https://deepwiki.com/Grenish/clipboard-manager) first — your answer might already be there.
+
+  - type: textarea
+    id: question
+    attributes:
+      label: Your Question
+      description: What would you like to know?
+      placeholder: How do I...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: topic
+    attributes:
+      label: Topic
+      description: What area does your question relate to?
+      options:
+        - Installation / Setup
+        - Daemon configuration
+        - TUI usage / Keybindings
+        - Hyprland integration
+        - Wayland / wl-clipboard setup
+        - Auto-paste (wtype / ydotool)
+        - History management
+        - Sensitive content detection
+        - Pinning entries
+        - Search functionality
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: tried
+    attributes:
+      label: What have you tried?
+      description: Describe any steps you've already taken to find the answer.
+      placeholder: |
+        I've tried...
+        I've looked at...
+    validations:
+      required: false
+
+  - type: input
+    id: version
+    attributes:
+      label: Clipboard Manager Version
+      description: Run `clipboard-manager --version` or check Cargo.toml
+      placeholder: e.g., 0.1.5
+    validations:
+      required: false
+
+  - type: dropdown
+    id: display-server
+    attributes:
+      label: Display Server
+      description: Which display server are you using?
+      options:
+        - Wayland (Hyprland)
+        - Wayland (Sway)
+        - Wayland (Other)
+        - X11
+        - Not sure
+    validations:
+      required: false
+
+  - type: input
+    id: distro
+    attributes:
+      label: Linux Distribution
+      placeholder: e.g., Arch Linux, Fedora 40, Ubuntu 24.04
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Any other details, screenshots, or config snippets that might help.
+    validations:
+      required: false
