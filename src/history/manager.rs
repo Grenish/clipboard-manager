@@ -8,10 +8,7 @@ use crate::models::{ClipboardContentType, ClipboardEntry, ImageInfo};
 use crate::utils::{HISTORY_FILE, IMAGES_DIR, MAX_HISTORY, format_size};
 use chrono::Utc;
 
-// ============================================================================
 // CLIPBOARD HISTORY MANAGER
-// ============================================================================
-
 pub struct ClipboardHistory {
     entries: Arc<Mutex<VecDeque<ClipboardEntry>>>,
     data_dir: PathBuf,
