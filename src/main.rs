@@ -19,10 +19,7 @@ use monitor::{
 };
 use ui::show_ui;
 
-// ============================================================================
 // MAIN
-// ============================================================================
-
 fn main() {
     let args: Vec<String> = env::args().collect();
     let backend = detect_clipboard_backend();
@@ -63,8 +60,11 @@ fn main() {
 
     println!("✓ Backend: {:?}", backend);
     println!("✓ Data dir: {}", data_dir.display());
-    println!("✓ Trigger: {}\n", get_trigger_script_path(&data_dir).display());
-    
+    println!(
+        "✓ Trigger: {}\n",
+        get_trigger_script_path(&data_dir).display()
+    );
+
     println!("ℹ Auto-configuration is active for Hyprland.");
     println!("  If the window doesn't float, add this rule to hyprland.conf:");
     println!("    windowrule = float on, match:class floating-clipboard");
