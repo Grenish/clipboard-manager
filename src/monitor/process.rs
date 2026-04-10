@@ -10,10 +10,7 @@ use crate::clipboard::{
 use crate::history::ClipboardHistory;
 use crate::utils::{PID_FILE, POLL_INTERVAL_MS};
 
-// ============================================================================
 // PID FILE MANAGEMENT
-// ============================================================================
-
 pub fn write_pid_file(data_dir: &PathBuf) -> Result<(), std::io::Error> {
     let pid_path = data_dir.join(PID_FILE);
     fs::write(pid_path, std::process::id().to_string())
@@ -72,10 +69,7 @@ fi
     Ok(())
 }
 
-// ============================================================================
 // POLLING MONITOR (FALLBACK)
-// ============================================================================
-
 pub fn monitor_loop(history: Arc<ClipboardHistory>, backend: ClipboardBackend) {
     println!("📋 Clipboard monitor started (Polling Fallback)");
 
