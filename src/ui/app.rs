@@ -1,9 +1,6 @@
 use ratatui::widgets::ListState;
 
-// ============================================================================
 // TERMINAL UI APP STATE
-// ============================================================================
-
 pub struct AppState {
     pub list_state: ListState,
     pub should_quit: bool,
