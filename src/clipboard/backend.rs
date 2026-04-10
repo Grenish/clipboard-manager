@@ -3,10 +3,7 @@ use std::process::Command;
 
 use arboard::Clipboard;
 
-// ============================================================================
 // CLIPBOARD BACKEND
-// ============================================================================
-
 #[derive(Debug, Clone, Copy)]
 pub enum ClipboardBackend {
     WlClipboard,
@@ -104,8 +101,9 @@ pub fn set_clipboard_text(content: &str, backend: ClipboardBackend) -> Result<()
                 .arg(content)
                 .spawn()
                 .map_err(|e| format!("Failed to spawn wl-copy: {}", e))?;
-                
-            child.wait()
+
+            child
+                .wait()
                 .map_err(|e| format!("wl-copy failed: {}", e))
                 .and_then(|status| {
                     if status.success() {
