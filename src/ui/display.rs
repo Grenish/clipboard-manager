@@ -20,11 +20,8 @@ use crate::ui::emoji;
 
 use std::time::Duration;
 
-// ============================================================================
 // EMOJI GRID RENDERER
-// ============================================================================
-
-/// A single cell in the emoji grid (value + display name).
+// A single cell in the emoji grid (value + display name).
 struct EmojiCell {
     value: String,
     name: String,
@@ -153,10 +150,7 @@ fn render_emoji_grid(
     f.render_widget(grid_widget, grid_area);
 }
 
-// ============================================================================
 // TERMINAL UI DISPLAY
-// ============================================================================
-
 pub fn show_ui(backend: ClipboardBackend) -> Result<(), Box<dyn std::error::Error>> {
     let history = ClipboardHistory::new();
 
@@ -790,8 +784,14 @@ pub fn show_ui(backend: ClipboardBackend) -> Result<(), Box<dyn std::error::Erro
                         Span::styled("↑↓←→", pk),
                         Span::styled(" Navigate ", pt),
                         Span::styled("|", ps),
+                        Span::styled(" 1-8", pk),
+                        Span::styled(" Jump ", pt),
+                        Span::styled("|", ps),
                         Span::styled(" Tab/⇧Tab", pk),
                         Span::styled(" Category ", pt),
+                        Span::styled("|", ps),
+                        Span::styled(" Home/End", pk),
+                        Span::styled(" First/Last ", pt),
                         Span::styled("|", ps),
                         Span::styled(" Enter", pk),
                         Span::styled(" Copy ", pt),
@@ -810,8 +810,11 @@ pub fn show_ui(backend: ClipboardBackend) -> Result<(), Box<dyn std::error::Erro
                         Span::styled(" Enter", pk),
                         Span::styled(" Copy ", pt),
                         Span::styled("|", ps),
+                        Span::styled(" Backspace", pk),
+                        Span::styled(" Clear Search ", pt),
+                        Span::styled("|", ps),
                         Span::styled(" Esc", pk),
-                        Span::styled(" Clear search", pt),
+                        Span::styled(" Exit", pt),
                     ]
                 };
 
@@ -902,10 +905,65 @@ pub fn show_ui(backend: ClipboardBackend) -> Result<(), Box<dyn std::error::Erro
                                 app_state.emoji_prev_category(emoji_cats.len());
                             }
                         }
+                        // Home: jump to first item in current category
+                        KeyCode::Home => {
+                            if !is_emoji_searching {
+                                app_state.emoji_item_index = 0;
+                                app_state.emoji_grid_scroll = 0;
+                            }
+                        }
+                        // End: jump to last item in current category
+                        KeyCode::End => {
+                            if !is_emoji_searching {
+                                let last = emoji_total.saturating_sub(1);
+                                app_state.emoji_item_index = last;
+                                // Trigger scroll adjustment on next frame
+                                let cols = app_state.emoji_grid_cols.max(1);
+                                let current_row = last / cols;
+                                let lines_per_item = 3;
+                                app_state.emoji_grid_scroll =
+                                    (current_row * lines_per_item).saturating_sub(8);
+                            }
+                        }
+                        // Page Down: scroll down faster
+                        KeyCode::PageDown => {
+                            if !is_emoji_searching {
+                                let cols = app_state.emoji_grid_cols.max(1);
+                                let new_idx =
+                                    (app_state.emoji_item_index + cols * 3).min(emoji_total - 1);
+                                app_state.emoji_item_index = new_idx;
+                            }
+                        }
+                        // Page Up: scroll up faster
+                        KeyCode::PageUp => {
+                            if !is_emoji_searching {
+                                let cols = app_state.emoji_grid_cols.max(1);
+                                app_state.emoji_item_index =
+                                    app_state.emoji_item_index.saturating_sub(cols * 3);
+                            }
+                        }
                         KeyCode::Char(c) => {
-                            app_state.emoji_search.push(c);
-                            app_state.emoji_item_index = 0;
-                            app_state.emoji_grid_scroll = 0;
+                            // Number keys 1-8 for quick category jump
+                            if !is_emoji_searching {
+                                if let Some(cat_num) = c.to_digit(10) {
+                                    let cat_idx = (cat_num - 1) as usize;
+                                    if cat_idx < emoji_cats.len() {
+                                        app_state.emoji_category_index = cat_idx;
+                                        app_state.emoji_item_index = 0;
+                                        app_state.emoji_grid_scroll = 0;
+                                    }
+                                } else {
+                                    // Regular character: start search
+                                    app_state.emoji_search.push(c);
+                                    app_state.emoji_item_index = 0;
+                                    app_state.emoji_grid_scroll = 0;
+                                }
+                            } else {
+                                // While searching, add any character to search
+                                app_state.emoji_search.push(c);
+                                app_state.emoji_item_index = 0;
+                                app_state.emoji_grid_scroll = 0;
+                            }
                         }
                         _ => {}
                     }
