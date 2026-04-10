@@ -1,7 +1,4 @@
-// ============================================================================
 // CONSTANTS
-// ============================================================================
-
 pub const MAX_HISTORY: usize = 50;
 pub const POLL_INTERVAL_MS: u64 = 150;
 pub const HISTORY_FILE: &str = "clipboard_history.jsonl";
