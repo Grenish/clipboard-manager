@@ -2,18 +2,12 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread;
 
-
-use signal_hook::consts::signal::*;
-use signal_hook::iterator::Signals;
 use crate::clipboard::ClipboardBackend;
 use crate::history::ClipboardHistory;
+use signal_hook::consts::signal::*;
+use signal_hook::iterator::Signals;
 
-
-
-// ============================================================================
 // SIGNAL LISTENER
-// ============================================================================
-
 pub fn start_signal_listener(shutdown_trigger: Arc<AtomicBool>) {
     thread::spawn(move || {
         if let Ok(mut signals) = Signals::new(&[SIGTERM, SIGINT]) {
@@ -27,10 +21,7 @@ pub fn start_signal_listener(shutdown_trigger: Arc<AtomicBool>) {
     });
 }
 
-// ============================================================================
 // CLIPBOARD MONITORING
-// ============================================================================
-
 pub fn start_clipboard_monitor(history: Arc<ClipboardHistory>, backend: ClipboardBackend) {
     // Attempt to configure Hyprland window rules automatically
     crate::monitor::hyprland::apply_hyprland_rules();
