@@ -4,10 +4,7 @@ use std::hash::{Hash, Hasher};
 
 use crate::utils::{SECRET_EXPIRY_SECS, format_size};
 
-// ============================================================================
 // DATA STRUCTURES
-// ============================================================================
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ClipboardContentType {
     Text,
