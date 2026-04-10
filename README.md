@@ -16,6 +16,7 @@ A lightweight, terminal-based clipboard manager for Linux built with Rust. Desig
 - **Sensitive content detection** — detects API keys, tokens, private keys, JWTs, and credit card numbers; masks them by default with auto-expiry (5 min)
 - **Emoji/emoticon picker** — browse 8 categories in a grid layout, search by name, and paste with Enter
 - **Auto-detection** of Hyprland with floating window rules
+- **Instant Paste** — selecting an item instantly pastes it to the target window (requires `wtype`)
 - **Background daemon** + `ratatui` TUI
 - **Wayland** (`wl-clipboard`) and **X11** support
 
@@ -48,7 +49,7 @@ cd clipboard-manager
 cargo install --path .
 ```
 
-> Wayland users need `wl-clipboard` installed. Auto-paste is not yet implemented.
+> Wayland users need `wl-clipboard` and `wtype` installed.
 
 ## Usage
 

@@ -10,9 +10,6 @@ use crate::history::ClipboardHistory;
 
 
 
-// ============================================================================
-// SIGNAL LISTENER
-// ============================================================================
 
 pub fn start_signal_listener(shutdown_trigger: Arc<AtomicBool>) {
     thread::spawn(move || {
@@ -27,9 +24,6 @@ pub fn start_signal_listener(shutdown_trigger: Arc<AtomicBool>) {
     });
 }
 
-// ============================================================================
-// CLIPBOARD MONITORING
-// ============================================================================
 
 pub fn start_clipboard_monitor(history: Arc<ClipboardHistory>, backend: ClipboardBackend) {
     // Attempt to configure Hyprland window rules automatically

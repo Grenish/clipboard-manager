@@ -1,6 +1,4 @@
-// ============================================================================
 // EMOJI / EMOTICON PICKER DATA
-// ============================================================================
 
 /// A single emoticon entry with a short name and the emoticon string.
 pub struct Emoticon {

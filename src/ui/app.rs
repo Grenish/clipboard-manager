@@ -1,8 +1,5 @@
 use ratatui::widgets::ListState;
 
-// ============================================================================
-// TERMINAL UI APP STATE
-// ============================================================================
 
 pub struct AppState {
     pub list_state: ListState,
@@ -86,9 +83,6 @@ impl AppState {
         self.should_quit = true;
     }
 
-    // ========================================================================
-    // EMOJI PICKER HELPERS
-    // ========================================================================
 
     /// Open the emoji picker and reset its state.
     pub fn open_emoji_picker(&mut self) {
@@ -108,14 +102,14 @@ impl AppState {
         self.emoji_search.clear();
     }
 
-    // --------------------------------------------------------------------
+    
     // Grid navigation
     //
     // The flat `emoji_item_index` is interpreted as row/col in a grid
     // with `emoji_grid_cols` columns.  Navigation wraps at boundaries.
     // After each move we call `ensure_grid_scroll_visible` so the
     // viewport follows the selection.
-    // --------------------------------------------------------------------
+    
 
     /// Move selection one cell to the right; wraps to next row, or to
     /// the first cell when the end is reached.

@@ -3,9 +3,6 @@ use std::process::Command;
 
 use arboard::Clipboard;
 
-// ============================================================================
-// CLIPBOARD BACKEND
-// ============================================================================
 
 #[derive(Debug, Clone, Copy)]
 pub enum ClipboardBackend {

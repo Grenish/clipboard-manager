@@ -8,10 +8,6 @@ use crate::models::{ClipboardContentType, ClipboardEntry, ImageInfo};
 use crate::utils::{HISTORY_FILE, IMAGES_DIR, MAX_HISTORY, format_size};
 use chrono::Utc;
 
-// ============================================================================
-// CLIPBOARD HISTORY MANAGER
-// ============================================================================
-
 pub struct ClipboardHistory {
     entries: Arc<Mutex<VecDeque<ClipboardEntry>>>,
     data_dir: PathBuf,
@@ -104,7 +100,16 @@ impl ClipboardHistory {
 
         drop(entries); // unlock before I/O
 
-        println!("✓ Added text ({} chars)", trimmed_content.len());
+        let flag_path = self.data_dir.join(".pasting");
+        let is_pasting = if flag_path.exists() {
+            let _ = std::fs::remove_file(&flag_path);
+            true
+        } else {
+            false
+        };
+        let action = if is_pasting { "Pasted" } else { "Copied" };
+        println!("✓ {} text ({} chars)", action, trimmed_content.len());
+
         if rewrite {
             self.rewrite_history();
         } else {
@@ -159,8 +164,18 @@ impl ClipboardHistory {
 
         let entry = ClipboardEntry::new_image(filename, info, hash);
 
+        let flag_path = self.data_dir.join(".pasting");
+        let is_pasting = if flag_path.exists() {
+            let _ = std::fs::remove_file(&flag_path);
+            true
+        } else {
+            false
+        };
+        let action = if is_pasting { "Pasted" } else { "Copied" };
+
         println!(
-            "✓ Added image {}×{} ({})",
+            "✓ {} image {}×{} ({})",
+            action,
             entry.image_info.as_ref().unwrap().width,
             entry.image_info.as_ref().unwrap().height,
             format_size(entry.image_info.as_ref().unwrap().size_bytes)

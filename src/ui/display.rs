@@ -20,10 +20,6 @@ use crate::ui::emoji;
 
 use std::time::Duration;
 
-// ============================================================================
-// EMOJI GRID RENDERER
-// ============================================================================
-
 /// A single cell in the emoji grid (value + display name).
 struct EmojiCell {
     value: String,
@@ -153,10 +149,6 @@ fn render_emoji_grid(
     f.render_widget(grid_widget, grid_area);
 }
 
-// ============================================================================
-// TERMINAL UI DISPLAY
-// ============================================================================
-
 pub fn show_ui(backend: ClipboardBackend) -> Result<(), Box<dyn std::error::Error>> {
     let history = ClipboardHistory::new();
 
@@ -255,9 +247,7 @@ pub fn show_ui(backend: ClipboardBackend) -> Result<(), Box<dyn std::error::Erro
                     ])
                     .split(f.area());
 
-                // ========================
                 // 1. HEADER (Styled)
-                // ========================
                 let header_chunks = Layout::default()
                     .direction(Direction::Horizontal)
                     .constraints([
@@ -308,9 +298,7 @@ pub fn show_ui(backend: ClipboardBackend) -> Result<(), Box<dyn std::error::Erro
                     Paragraph::new(Line::from(stats_spans)).alignment(Alignment::Right);
                 f.render_widget(header_stats, header_chunks[1]);
 
-                // ========================
                 // 2. LIST (Themed)
-                // ========================
                 let list_inner_width = chunks[1].width.saturating_sub(4) as usize;
 
                 let items: Vec<ListItem> = filtered_entries
@@ -377,9 +365,7 @@ pub fn show_ui(backend: ClipboardBackend) -> Result<(), Box<dyn std::error::Erro
 
                 f.render_stateful_widget(list, chunks[1], &mut app_state.list_state);
 
-                // ========================
                 // 3. FOOTER (Styled Keys)
-                // ========================
                 let key_style = Style::default()
                     .fg(Color::Cyan)
                     .add_modifier(Modifier::BOLD);
@@ -435,9 +421,7 @@ pub fn show_ui(backend: ClipboardBackend) -> Result<(), Box<dyn std::error::Erro
                 f.render_widget(footer, chunks[2]);
             }
 
-            // ========================================
             // MODAL: Clear Confirm
-            // ========================================
             if app_state.show_clear_confirm {
                 let area = f.area();
                 let text = Paragraph::new(vec![
@@ -488,9 +472,7 @@ pub fn show_ui(backend: ClipboardBackend) -> Result<(), Box<dyn std::error::Erro
                 f.render_widget(text, h_centered[1]);
             }
 
-            // ========================================
             // MODAL: Emoji Picker
-            // ========================================
             if app_state.show_emoji_picker {
                 let area = f.area();
 
@@ -821,9 +803,6 @@ pub fn show_ui(backend: ClipboardBackend) -> Result<(), Box<dyn std::error::Erro
             }
         })?;
 
-        // ====================================================================
-        // INPUT HANDLING
-        // ====================================================================
         if event::poll(Duration::from_millis(50))? {
             if let CrosstermEvent::Key(key) = event::read()? {
                 // ---- Emoji Picker Mode ----
@@ -1026,9 +1005,6 @@ pub fn show_ui(backend: ClipboardBackend) -> Result<(), Box<dyn std::error::Erro
             }
         }
 
-        // ====================================================================
-        // HANDLE EMOJI SELECTION (copy to clipboard + paste)
-        // ====================================================================
         if let Some(emoji_value) = app_state.emoji_selected.take() {
             // Close the emoji picker UI state (already closed via close_emoji_picker,
             // but ensure it's clean)
@@ -1040,6 +1016,7 @@ pub fn show_ui(backend: ClipboardBackend) -> Result<(), Box<dyn std::error::Erro
             execute!(terminal.backend_mut(), LeaveAlternateScreen)?;
             terminal.show_cursor()?;
 
+            let _ = std::fs::write(history.data_dir().join(".pasting"), "");
             if set_clipboard_text(&emoji_value, backend).is_ok() {
                 println!("✓ Copied emoticon: {}", emoji_value);
 
@@ -1052,9 +1029,6 @@ pub fn show_ui(backend: ClipboardBackend) -> Result<(), Box<dyn std::error::Erro
             return Ok(());
         }
 
-        // ====================================================================
-        // HANDLE QUIT / SELECTION
-        // ====================================================================
         if app_state.should_quit {
             // Capture selected entry before exiting if we were selecting
             if let Some(idx) = app_state.list_state.selected() {
@@ -1079,6 +1053,7 @@ pub fn show_ui(backend: ClipboardBackend) -> Result<(), Box<dyn std::error::Erro
         let mut pasted = false;
         match entry.content_type {
             ClipboardContentType::Text => {
+                let _ = std::fs::write(history.data_dir().join(".pasting"), "");
                 if set_clipboard_text(&entry.content, backend).is_ok() {
                     println!("✓ Copied to clipboard");
                     pasted = true;
@@ -1086,6 +1061,7 @@ pub fn show_ui(backend: ClipboardBackend) -> Result<(), Box<dyn std::error::Erro
             }
             ClipboardContentType::Image => {
                 let image_path = history.images_dir().join(&entry.content);
+                let _ = std::fs::write(history.data_dir().join(".pasting"), "");
                 if set_clipboard_image(&image_path, backend).is_ok() {
                     println!("✓ Copied image to clipboard");
                     pasted = true;

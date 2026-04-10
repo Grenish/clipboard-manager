@@ -1,7 +1,3 @@
-// ============================================================================
-// HELPER FUNCTIONS
-// ============================================================================
-
 /// Format bytes into human-readable size string
 #[inline]
 pub fn format_size(bytes: u64) -> String {
@@ -43,10 +39,10 @@ pub fn perform_background_paste(backend: ClipboardBackend) {
     // Try ydotool (Wayland/X11 - uses uinput, works universally)
     if Command::new("ydotool")
         .arg("key")
-        .arg("29:1")  // Ctrl press (keycode 29)
-        .arg("47:1")  // V press (keycode 47)
-        .arg("47:0")  // V release
-        .arg("29:0")  // Ctrl release
+        .arg("29:1") // Ctrl press (keycode 29)
+        .arg("47:1") // V press (keycode 47)
+        .arg("47:0") // V release
+        .arg("29:0") // Ctrl release
         .spawn()
         .and_then(|mut c| c.wait())
         .map(|s| s.success())
@@ -78,4 +74,3 @@ pub fn perform_background_paste(backend: ClipboardBackend) {
     eprintln!("    - ydotool (universal):      sudo pacman -S ydotool");
     eprintln!("    - xdotool (X11 only):       sudo pacman -S xdotool");
 }
-
